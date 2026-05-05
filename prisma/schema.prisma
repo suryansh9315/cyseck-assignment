@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  admin
+  employee
+}
+
+enum ReviewStatus {
+  open
+  closed
+}
+
+model Employee {
+  id          String             @id @default(cuid())
+  email       String             @unique
+  name        String
+  password    String
+  role        Role               @default(employee)
+  createdAt   DateTime           @default(now())
+  reviews     Review[]
+  assignments ReviewAssignment[] @relation("Reviewer")
+}
+
+model Review {
+  id          String             @id @default(cuid())
+  employee    Employee           @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  employeeId  String
+  period      String
+  status      ReviewStatus       @default(open)
+  createdAt   DateTime           @default(now())
+  assignments ReviewAssignment[]
+}
+
+model ReviewAssignment {
+  id         String    @id @default(cuid())
+  review     Review    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  reviewId   String
+  reviewer   Employee  @relation("Reviewer", fields: [reviewerId], references: [id], onDelete: Cascade)
+  reviewerId String
+  feedback   Feedback?
+
+  @@unique([reviewId, reviewerId])
+}
+
+model Feedback {
+  id           String           @id @default(cuid())
+  assignment   ReviewAssignment @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  assignmentId String           @unique
+  rating       Int
+  comments     String
+  submittedAt  DateTime         @default(now())
+}
