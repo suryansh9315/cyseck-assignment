@@ -5,7 +5,7 @@ export const config = {
   matcher: ['/admin/:path*', '/employee/:path*', '/api/:path*'],
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
   // Auth routes are always public

@@ -1,36 +1,120 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Performance Review App
 
-## Getting Started
+A fullstack employee performance review system built with Next.js, PostgreSQL, Prisma, and Tailwind CSS.
 
-First, run the development server:
+## Stack
+
+- **Next.js 16** — App Router, TypeScript, API Routes
+- **PostgreSQL 16** — via Docker
+- **Prisma 7** — schema, migrations, seeding
+- **Tailwind CSS 4** — styling
+- **jose** — JWT auth (Edge-compatible)
+- **bcryptjs** — password hashing
+
+## Setup
+
+### Option A — Docker (recommended)
+
+Requires [Docker](https://docs.docker.com/get-docker/) with Compose v2.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+docker compose up --build
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Starts PostgreSQL, waits for it to be healthy, then automatically pushes the schema, seeds the database, and starts the app at **http://localhost:3001**.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Option B — Local
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Requires Node.js 18+ and a running PostgreSQL instance.
 
-## Learn More
+1. Set your connection string in `.env`:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+cp .env.example .env
+# edit .env and set DATABASE_URL to your PostgreSQL instance
+# e.g. DATABASE_URL="postgresql://user:password@localhost:5432/cyseck"
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+2. Install, migrate, and start:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+npm install
+npm run setup
+npm run dev
+```
 
-## Deploy on Vercel
+App runs at **http://localhost:3000**.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Seed Credentials
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Email               | Password     | Role     |
+|---------------------|--------------|----------|
+| admin@company.com   | password123  | Admin    |
+| bob@company.com     | password123  | Employee |
+| carol@company.com   | password123  | Employee |
+| dave@company.com    | password123  | Employee |
+| eve@company.com     | password123  | Employee |
+
+## Pages
+
+| Route                  | Description                                              |
+|------------------------|----------------------------------------------------------|
+| `/`                    | Redirects to `/login`, `/admin`, or `/employee`          |
+| `/login`               | Email + password sign-in                                 |
+| `/admin`               | Admin dashboard — manage employees and reviews (tabbed)  |
+| `/admin/reviews/[id]`  | Review detail — feedback list, edit period/status/reviewers |
+| `/employee`            | Pending review assignments with inline feedback form     |
+
+## API Routes
+
+| Method | Path                  | Description                                      |
+|--------|-----------------------|--------------------------------------------------|
+| POST   | `/api/auth/login`     | Authenticate, set JWT cookie                     |
+| POST   | `/api/auth/logout`    | Clear JWT cookie                                 |
+| GET    | `/api/auth/me`        | Return current user from JWT                     |
+| GET    | `/api/employees`      | List all employees (admin)                       |
+| POST   | `/api/employees`      | Create employee with hashed password (admin)     |
+| PUT    | `/api/employees/[id]` | Update employee (admin)                          |
+| DELETE | `/api/employees/[id]` | Delete employee + cascade (admin)                |
+| GET    | `/api/reviews`        | List reviews (admin: all; employee: pending)     |
+| POST   | `/api/reviews`        | Create review + assign reviewers (admin)         |
+| PUT    | `/api/reviews/[id]`   | Update period, status, reviewers (admin)         |
+| POST   | `/api/feedback`       | Submit feedback for an assignment (employee)     |
+
+## Assumptions
+
+- **No self-registration** — only admins create employee accounts with an initial password
+- **No password reset** — out of scope for this demo
+- **No self-review** — enforced server-side; the subject employee is excluded from reviewer selection
+- **One feedback per assignment** — enforced by a DB unique constraint (`assignmentId`)
+- **No pagination** — small demo dataset
+- **JWT secret in `.env`** — use a proper secret manager in production
+- **Admin is an employee** — `role = 'admin'` on the `Employee` table; admins can also be assigned as reviewers
+
+## Project Structure
+
+```
+├── app/
+│   ├── api/
+│   │   ├── auth/login, logout, me
+│   │   ├── employees/, employees/[id]
+│   │   ├── reviews/, reviews/[id]
+│   │   └── feedback/
+│   ├── admin/
+│   │   ├── page.tsx              # Employees + Reviews tabs
+│   │   └── reviews/[id]/page.tsx # Review detail
+│   ├── employee/page.tsx         # Pending assignments + feedback form
+│   ├── login/page.tsx
+│   ├── NavBar.tsx
+│   ├── layout.tsx
+│   └── page.tsx                  # Auth redirect
+├── lib/
+│   ├── prisma.ts                 # Singleton PrismaClient
+│   └── auth.ts                   # JWT sign/verify/getCurrentUser
+├── prisma/
+│   ├── schema.prisma
+│   └── seed.ts
+├── proxy.ts                       # JWT verification + role-based route guard
+├── prisma.config.ts              # Prisma 7 datasource config
+└── docker-compose.yml
+```
