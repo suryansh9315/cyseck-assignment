@@ -39,7 +39,7 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
     }
     const assignments = await prisma.reviewAssignment.findMany({
-      where: { reviewerId, feedback: null },
+      where: { reviewerId, feedback: null, review: { status: 'open' } },
       include: {
         review: {
           include: {

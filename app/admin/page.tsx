@@ -1,7 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import Link from 'next/link'
+
+function ChevronIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  )
+}
 
 function EyeIcon({ open }: { open: boolean }) {
   return open ? (
@@ -305,17 +313,22 @@ function EmployeesTab({ currentUserId }: { currentUserId: string }) {
             </div>
             <div>
               <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Role</label>
-              <select
-                value={addForm.role}
-                onChange={(e) => setAddForm({ ...addForm, role: e.target.value })}
-                className={`${inputCls} cursor-pointer`}
-                style={inputOnWhite}
-                onFocus={focusInput}
-                onBlur={blurInput}
-              >
-                <option value="employee">Employee</option>
-                <option value="admin">Admin</option>
-              </select>
+              <div className="relative">
+                <select
+                  value={addForm.role}
+                  onChange={(e) => setAddForm({ ...addForm, role: e.target.value })}
+                  className={`${inputCls} pr-10 cursor-pointer appearance-none`}
+                  style={inputOnWhite}
+                  onFocus={focusInput}
+                  onBlur={blurInput}
+                >
+                  <option value="employee">Employee</option>
+                  <option value="admin">Admin</option>
+                </select>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--muted)' }}>
+                  <ChevronIcon />
+                </span>
+              </div>
             </div>
             <div>
               <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>
@@ -390,9 +403,8 @@ function EmployeesTab({ currentUserId }: { currentUserId: string }) {
                 const isLast = index === employees.length - 1
                 const isEditLast = editingId === emp.id && isLast
                 return (
-                  <>
+                  <Fragment key={emp.id}>
                     <tr
-                      key={emp.id}
                       style={{ borderBottom: (isLast && editingId !== emp.id) ? 'none' : '1px solid var(--border)' }}
                     >
                       <td className="py-3.5 pr-6 font-medium" style={{ color: 'var(--foreground)' }}>
@@ -442,7 +454,7 @@ function EmployeesTab({ currentUserId }: { currentUserId: string }) {
                     </tr>
 
                     {editingId === emp.id && (
-                      <tr key={`${emp.id}-edit`}>
+                      <tr>
                         <td colSpan={5} className="py-4" style={{ borderBottom: isEditLast ? 'none' : '1px solid var(--border)' }}>
                           <form
                             onSubmit={handleEdit}
@@ -493,17 +505,22 @@ function EmployeesTab({ currentUserId }: { currentUserId: string }) {
                                     <span style={{ color: '#AEAEB2', fontSize: '11px' }}>(cannot change)</span>
                                   </div>
                                 ) : (
-                                  <select
-                                    value={editForm.role}
-                                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                                    className={`${inputCls} cursor-pointer`}
-                                    style={inputOnWhite}
-                                    onFocus={focusInput}
-                                    onBlur={blurInput}
-                                  >
-                                    <option value="employee">Employee</option>
-                                    <option value="admin">Admin</option>
-                                  </select>
+                                  <div className="relative">
+                                    <select
+                                      value={editForm.role}
+                                      onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                                      className={`${inputCls} pr-10 cursor-pointer appearance-none`}
+                                      style={inputOnWhite}
+                                      onFocus={focusInput}
+                                      onBlur={blurInput}
+                                    >
+                                      <option value="employee">Employee</option>
+                                      <option value="admin">Admin</option>
+                                    </select>
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--muted)' }}>
+                                      <ChevronIcon />
+                                    </span>
+                                  </div>
                                 )}
                               </div>
                               <div>
@@ -556,7 +573,7 @@ function EmployeesTab({ currentUserId }: { currentUserId: string }) {
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 )
               })}
             </tbody>
@@ -576,7 +593,8 @@ function EmployeesTab({ currentUserId }: { currentUserId: string }) {
   )
 }
 
-function ReviewsTab({ employees }: { employees: Employee[] }) {
+function ReviewsTab() {
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [reviews, setReviews] = useState<Review[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -589,10 +607,15 @@ function ReviewsTab({ employees }: { employees: Employee[] }) {
   async function fetchReviews() {
     setLoading(true)
     try {
-      const res = await fetch('/api/reviews')
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error)
-      setReviews(data)
+      const [reviewsRes, employeesRes] = await Promise.all([
+        fetch('/api/reviews'),
+        fetch('/api/employees'),
+      ])
+      const reviewsData = await reviewsRes.json()
+      const employeesData = await employeesRes.json()
+      if (!reviewsRes.ok) throw new Error(reviewsData.error)
+      setReviews(reviewsData)
+      if (employeesRes.ok) setEmployees(employeesData)
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Failed to load reviews')
     } finally {
@@ -669,20 +692,25 @@ function ReviewsTab({ employees }: { employees: Employee[] }) {
               <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>
                 Employee being reviewed
               </label>
-              <select
-                required
-                value={createForm.employeeId}
-                onChange={(e) => setCreateForm({ ...createForm, employeeId: e.target.value, reviewerIds: [] })}
-                className={`${inputCls} cursor-pointer`}
-                style={inputOnWhite}
-                onFocus={focusInput}
-                onBlur={blurInput}
-              >
-                <option value="">Select employee…</option>
-                {employees.map((emp) => (
-                  <option key={emp.id} value={emp.id}>{emp.name}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  required
+                  value={createForm.employeeId}
+                  onChange={(e) => setCreateForm({ ...createForm, employeeId: e.target.value, reviewerIds: [] })}
+                  className={`${inputCls} pr-10 cursor-pointer appearance-none`}
+                  style={inputOnWhite}
+                  onFocus={focusInput}
+                  onBlur={blurInput}
+                >
+                  <option value="">Select employee…</option>
+                  {employees.map((emp) => (
+                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                  ))}
+                </select>
+                <span className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" style={{ color: 'var(--muted)' }}>
+                  <ChevronIcon />
+                </span>
+              </div>
             </div>
             <div>
               <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Period</label>
@@ -754,7 +782,7 @@ function ReviewsTab({ employees }: { employees: Employee[] }) {
           <div className="flex items-center gap-3">
             <button
               type="submit"
-              disabled={creating || createForm.reviewerIds.length === 0}
+              disabled={creating || !createForm.employeeId || !createForm.period.trim() || createForm.reviewerIds.length === 0}
               className="text-sm font-medium rounded-xl px-5 py-2.5 cursor-pointer transition-opacity hover:opacity-75 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: '#000', color: '#fff' }}
             >
@@ -841,14 +869,9 @@ function ReviewsTab({ employees }: { employees: Employee[] }) {
 
 export default function AdminPage() {
   const [tab, setTab] = useState<'employees' | 'reviews'>('employees')
-  const [employees, setEmployees] = useState<Employee[]>([])
   const [currentUserId, setCurrentUserId] = useState('')
 
   useEffect(() => {
-    fetch('/api/employees')
-      .then((r) => r.json())
-      .then(setEmployees)
-      .catch(() => { })
     fetch('/api/auth/me')
       .then((r) => r.json())
       .then((d) => { if (d.userId) setCurrentUserId(d.userId) })
@@ -889,7 +912,7 @@ export default function AdminPage() {
         style={{ background: '#fff', border: '1px solid var(--border)' }}
       >
         {tab === 'employees' && <EmployeesTab currentUserId={currentUserId} />}
-        {tab === 'reviews' && <ReviewsTab employees={employees} />}
+        {tab === 'reviews' && <ReviewsTab />}
       </div>
     </div>
   )
