@@ -136,7 +136,7 @@ function DeleteModal({
   )
 }
 
-function EmployeesTab() {
+function EmployeesTab({ currentUserId }: { currentUserId: string }) {
   const [employees, setEmployees] = useState<Employee[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -418,21 +418,25 @@ function EmployeesTab() {
                       </td>
                       <td className="py-3.5">
                         <div className="flex items-center gap-3">
-                          <button
-                            onClick={() => startEdit(emp)}
-                            className="text-xs font-medium cursor-pointer hover:opacity-60 transition-opacity"
-                            style={{ color: 'var(--foreground)' }}
-                          >
-                            Edit
-                          </button>
-                          <button
-                            onClick={() => setDeleteTarget(emp)}
-                            disabled={deletingId === emp.id}
-                            className="text-xs font-medium cursor-pointer hover:opacity-60 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
-                            style={{ color: '#FF3B30' }}
-                          >
-                            {deletingId === emp.id ? '…' : 'Delete'}
-                          </button>
+                          {(emp.role === 'employee' || emp.id === currentUserId) && (
+                            <button
+                              onClick={() => startEdit(emp)}
+                              className="text-xs font-medium cursor-pointer hover:opacity-60 transition-opacity"
+                              style={{ color: 'var(--foreground)' }}
+                            >
+                              Edit
+                            </button>
+                          )}
+                          {emp.role === 'employee' && (
+                            <button
+                              onClick={() => setDeleteTarget(emp)}
+                              disabled={deletingId === emp.id}
+                              className="text-xs font-medium cursor-pointer hover:opacity-60 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                              style={{ color: '#FF3B30' }}
+                            >
+                              {deletingId === emp.id ? '…' : 'Delete'}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -838,11 +842,16 @@ function ReviewsTab({ employees }: { employees: Employee[] }) {
 export default function AdminPage() {
   const [tab, setTab] = useState<'employees' | 'reviews'>('employees')
   const [employees, setEmployees] = useState<Employee[]>([])
+  const [currentUserId, setCurrentUserId] = useState('')
 
   useEffect(() => {
     fetch('/api/employees')
       .then((r) => r.json())
       .then(setEmployees)
+      .catch(() => { })
+    fetch('/api/auth/me')
+      .then((r) => r.json())
+      .then((d) => { if (d.userId) setCurrentUserId(d.userId) })
       .catch(() => { })
   }, [])
 
@@ -879,7 +888,7 @@ export default function AdminPage() {
         className="rounded-2xl p-7"
         style={{ background: '#fff', border: '1px solid var(--border)' }}
       >
-        {tab === 'employees' && <EmployeesTab />}
+        {tab === 'employees' && <EmployeesTab currentUserId={currentUserId} />}
         {tab === 'reviews' && <ReviewsTab employees={employees} />}
       </div>
     </div>

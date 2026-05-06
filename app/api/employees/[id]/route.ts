@@ -23,10 +23,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   try {
     const { name, email, role, password } = await req.json()
 
-    if (role && !['admin', 'employee'].includes(role)) {
-      return NextResponse.json({ error: 'role must be admin or employee' }, { status: 400 })
-    }
-
     if (email && !EMAIL_RE.test(email)) {
       return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
     }
@@ -43,8 +39,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
     }
 
-    if (target.role === 'admin' && role && role !== 'admin') {
-      return NextResponse.json({ error: 'Admin role cannot be changed' }, { status: 403 })
+    if (target.role === 'admin' && id !== user.userId) {
+      return NextResponse.json({ error: 'Cannot edit another admin account' }, { status: 403 })
+    }
+
+    if (role && role !== target.role) {
+      if (target.role === 'admin') {
+        return NextResponse.json({ error: 'Admin role cannot be changed' }, { status: 403 })
+      }
+      if (!['admin', 'employee'].includes(role)) {
+        return NextResponse.json({ error: 'role must be admin or employee' }, { status: 400 })
+      }
     }
 
     const data: Record<string, unknown> = {}
@@ -79,6 +84,15 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
 
   if (id === user.userId) {
     return NextResponse.json({ error: 'You cannot delete your own account' }, { status: 403 })
+  }
+
+  const target = await prisma.employee.findUnique({ where: { id }, select: { role: true } })
+  if (!target) {
+    return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
+  }
+
+  if (target.role === 'admin') {
+    return NextResponse.json({ error: 'Admin accounts cannot be deleted' }, { status: 403 })
   }
 
   try {
