@@ -39,11 +39,27 @@ type Review = {
 
 function Stars({ rating }: { rating: number }) {
   return (
-    <span className="text-yellow-400">
-      {'★'.repeat(rating)}
-      <span className="text-gray-300">{'★'.repeat(5 - rating)}</span>
+    <span className="flex gap-0.5">
+      {[1, 2, 3, 4, 5].map((s) => (
+        <span key={s} style={{ color: s <= rating ? '#FF9500' : '#E8E8ED', fontSize: '14px' }}>★</span>
+      ))}
     </span>
   )
+}
+
+// ─── Shared input style ───────────────────────────────────────────────────────
+
+const inputCls = 'w-full rounded-xl px-4 py-2.5 text-sm outline-none transition-colors'
+const inputStyle = {
+  background: '#F5F5F7',
+  border: '1px solid transparent',
+  color: 'var(--foreground)',
+}
+function focusInput(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
+  e.currentTarget.style.border = '1px solid #1D1D1F'
+}
+function blurInput(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
+  e.currentTarget.style.border = '1px solid transparent'
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -57,7 +73,6 @@ export default function ReviewDetailPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
-  // Edit form state
   const [editing, setEditing] = useState(false)
   const [editPeriod, setEditPeriod] = useState('')
   const [editStatus, setEditStatus] = useState<'open' | 'closed'>('open')
@@ -130,17 +145,21 @@ export default function ReviewDetailPage() {
 
   if (loading) {
     return (
-      <div className="max-w-3xl mx-auto px-6 py-8">
-        <p className="text-sm text-gray-500">Loading…</p>
+      <div className="max-w-3xl mx-auto px-6 py-10">
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>Loading…</p>
       </div>
     )
   }
 
   if (error || !review) {
     return (
-      <div className="max-w-3xl mx-auto px-6 py-8">
-        <p className="text-sm text-red-600">{error || 'Review not found'}</p>
-        <button onClick={() => router.push('/admin')} className="mt-4 text-sm text-blue-600 hover:underline">
+      <div className="max-w-3xl mx-auto px-6 py-10 space-y-4">
+        <p className="text-sm" style={{ color: '#FF3B30' }}>{error || 'Review not found'}</p>
+        <button
+          onClick={() => router.push('/admin')}
+          className="text-sm font-medium"
+          style={{ color: 'var(--foreground)' }}
+        >
           ← Back to dashboard
         </button>
       </div>
@@ -148,61 +167,84 @@ export default function ReviewDetailPage() {
   }
 
   const eligibleReviewers = employees.filter((e) => e.id !== review.employee.id)
+  const submittedCount = review.assignments.filter((a) => a.feedback).length
 
   return (
-    <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
+    <div className="max-w-3xl mx-auto px-6 py-10 space-y-8">
+      {/* Back */}
+      <Link
+        href="/admin"
+        className="text-sm font-medium inline-flex items-center gap-1"
+        style={{ color: 'var(--muted)' }}
+      >
+        ← Dashboard
+      </Link>
+
       {/* Header */}
-      <div>
-        <Link href="/admin" className="text-sm text-blue-600 hover:underline">
-          ← Back to dashboard
-        </Link>
-        <div className="mt-3 flex items-start justify-between">
-          <div>
-            <h1 className="text-2xl font-semibold text-gray-800">
-              {review.employee.name}
-            </h1>
-            <p className="text-gray-500 text-sm mt-0.5">{review.period}</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <span className={`text-xs font-medium px-2 py-1 rounded ${
-              review.status === 'open'
-                ? 'bg-green-100 text-green-700'
-                : 'bg-gray-100 text-gray-500'
-            }`}>
-              {review.status}
-            </span>
-            {!editing && (
-              <button
-                onClick={startEdit}
-                className="text-sm bg-blue-600 text-white px-4 py-1.5 rounded hover:bg-blue-700"
-              >
-                Edit
-              </button>
-            )}
-          </div>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1
+            className="text-3xl font-bold"
+            style={{ color: 'var(--foreground)', letterSpacing: '-0.03em' }}
+          >
+            {review.employee.name}
+          </h1>
+          <p className="text-sm mt-1" style={{ color: 'var(--muted)' }}>{review.period}</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span
+            className="text-xs font-medium px-2.5 py-1 rounded-full"
+            style={{
+              background: review.status === 'open' ? '#E8FFF0' : '#F5F5F7',
+              color: review.status === 'open' ? '#1A7F3C' : 'var(--muted)',
+            }}
+          >
+            {review.status}
+          </span>
+          {!editing && (
+            <button
+              onClick={startEdit}
+              className="text-sm font-medium rounded-xl px-4 py-2"
+              style={{ background: '#000', color: '#fff' }}
+            >
+              Edit
+            </button>
+          )}
         </div>
       </div>
 
       {/* Edit form */}
       {editing && (
-        <form onSubmit={handleSave} className="bg-gray-50 border border-gray-200 rounded-lg p-4 space-y-4">
-          <h2 className="text-sm font-medium text-gray-700">Edit Review</h2>
+        <form
+          onSubmit={handleSave}
+          className="rounded-2xl p-6 space-y-5"
+          style={{ background: '#F5F5F7' }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
+            Edit Review
+          </p>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Period</label>
+              <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Period</label>
               <input
                 required
                 value={editPeriod}
                 onChange={(e) => setEditPeriod(e.target.value)}
-                className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={inputCls}
+                style={{ ...inputStyle, background: '#fff' }}
+                onFocus={focusInput}
+                onBlur={blurInput}
               />
             </div>
             <div>
-              <label className="block text-xs text-gray-600 mb-1">Status</label>
+              <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Status</label>
               <select
                 value={editStatus}
                 onChange={(e) => setEditStatus(e.target.value as 'open' | 'closed')}
-                className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className={inputCls}
+                style={{ ...inputStyle, background: '#fff' }}
+                onFocus={focusInput}
+                onBlur={blurInput}
               >
                 <option value="open">Open</option>
                 <option value="closed">Closed</option>
@@ -211,35 +253,59 @@ export default function ReviewDetailPage() {
           </div>
 
           <div>
-            <label className="block text-xs text-gray-600 mb-2">Reviewers</label>
-            <div className="grid grid-cols-2 gap-1.5">
+            <label className="block text-xs mb-3" style={{ color: 'var(--muted)' }}>Reviewers</label>
+            <div className="grid grid-cols-2 gap-2">
               {eligibleReviewers.map((emp) => (
-                <label key={emp.id} className="flex items-center gap-2 text-sm cursor-pointer">
+                <label
+                  key={emp.id}
+                  className="flex items-center gap-2.5 text-sm cursor-pointer rounded-xl px-3 py-2.5"
+                  style={{
+                    background: editReviewerIds.includes(emp.id) ? '#1D1D1F' : '#fff',
+                    color: editReviewerIds.includes(emp.id) ? '#fff' : 'var(--foreground)',
+                    border: '1px solid var(--border)',
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={editReviewerIds.includes(emp.id)}
                     onChange={() => toggleReviewer(emp.id)}
-                    className="rounded"
+                    className="hidden"
                   />
+                  <span
+                    className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+                    style={{
+                      background: editReviewerIds.includes(emp.id) ? 'rgba(255,255,255,0.2)' : '#F5F5F7',
+                      border: '1px solid',
+                      borderColor: editReviewerIds.includes(emp.id) ? 'transparent' : 'var(--border)',
+                    }}
+                  >
+                    {editReviewerIds.includes(emp.id) && (
+                      <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                      </svg>
+                    )}
+                  </span>
                   {emp.name}
                 </label>
               ))}
             </div>
           </div>
 
-          {saveError && <p className="text-xs text-red-600">{saveError}</p>}
-          <div className="flex gap-2">
+          {saveError && <p className="text-xs" style={{ color: '#FF3B30' }}>{saveError}</p>}
+          <div className="flex items-center gap-3">
             <button
               type="submit"
               disabled={saving || editReviewerIds.length === 0}
-              className="bg-blue-600 text-white text-sm px-4 py-1.5 rounded hover:bg-blue-700 disabled:opacity-50"
+              className="text-sm font-medium rounded-xl px-5 py-2.5 transition-opacity disabled:opacity-50"
+              style={{ background: '#000', color: '#fff' }}
             >
               {saving ? 'Saving…' : 'Save changes'}
             </button>
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="text-sm text-gray-500 hover:text-gray-700 px-4 py-1.5"
+              className="text-sm font-medium"
+              style={{ color: 'var(--muted)' }}
             >
               Cancel
             </button>
@@ -247,51 +313,65 @@ export default function ReviewDetailPage() {
         </form>
       )}
 
-      {/* Reviewer feedback table */}
-      <div className="bg-white rounded-lg shadow p-6">
-        <h2 className="text-base font-medium text-gray-800 mb-4">
-          Reviewer Feedback
-          <span className="ml-2 text-sm font-normal text-gray-500">
-            ({review.assignments.filter((a) => a.feedback).length} / {review.assignments.length} submitted)
+      {/* Feedback section */}
+      <div
+        className="rounded-2xl p-6 space-y-5"
+        style={{ background: '#fff', border: '1px solid var(--border)' }}
+      >
+        <div className="flex items-baseline justify-between">
+          <h2
+            className="text-base font-semibold"
+            style={{ color: 'var(--foreground)', letterSpacing: '-0.02em' }}
+          >
+            Reviewer Feedback
+          </h2>
+          <span className="text-sm" style={{ color: 'var(--muted)' }}>
+            {submittedCount} / {review.assignments.length} submitted
           </span>
-        </h2>
+        </div>
 
         {review.assignments.length === 0 ? (
-          <p className="text-sm text-gray-500">No reviewers assigned.</p>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>No reviewers assigned.</p>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-3">
             {review.assignments.map((assignment) => (
-              <div key={assignment.id} className="border border-gray-100 rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-sm text-gray-800">
+              <div
+                key={assignment.id}
+                className="rounded-xl p-4"
+                style={{ background: '#F5F5F7' }}
+              >
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium" style={{ color: 'var(--foreground)' }}>
                     {assignment.reviewer.name}
                   </span>
-                  {assignment.feedback ? (
-                    <span className="text-xs bg-green-100 text-green-700 font-medium px-2 py-0.5 rounded">
-                      Submitted
-                    </span>
-                  ) : (
-                    <span className="text-xs bg-yellow-100 text-yellow-700 font-medium px-2 py-0.5 rounded">
-                      Pending
-                    </span>
-                  )}
+                  <span
+                    className="text-xs font-medium px-2.5 py-1 rounded-full"
+                    style={{
+                      background: assignment.feedback ? '#E8FFF0' : '#FFF8E8',
+                      color: assignment.feedback ? '#1A7F3C' : '#B8660A',
+                    }}
+                  >
+                    {assignment.feedback ? 'Submitted' : 'Pending'}
+                  </span>
                 </div>
 
                 {assignment.feedback ? (
-                  <div className="space-y-1">
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
                       <Stars rating={assignment.feedback.rating} />
-                      <span className="text-xs text-gray-500">
-                        {assignment.feedback.rating} / 5
+                      <span className="text-xs" style={{ color: 'var(--muted)' }}>
+                        {assignment.feedback.rating}/5
                       </span>
                     </div>
-                    <p className="text-sm text-gray-700">{assignment.feedback.comments}</p>
-                    <p className="text-xs text-gray-400">
+                    <p className="text-sm leading-relaxed" style={{ color: 'var(--foreground)' }}>
+                      {assignment.feedback.comments}
+                    </p>
+                    <p className="text-xs" style={{ color: '#AEAEB2' }}>
                       {new Date(assignment.feedback.submittedAt).toLocaleString()}
                     </p>
                   </div>
                 ) : (
-                  <p className="text-sm text-gray-400 italic">No feedback yet.</p>
+                  <p className="text-sm" style={{ color: '#AEAEB2' }}>No feedback submitted yet.</p>
                 )}
               </div>
             ))}

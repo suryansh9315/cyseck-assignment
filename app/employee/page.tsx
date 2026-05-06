@@ -26,11 +26,10 @@ function StarInput({ value, onChange }: { value: number; onChange: (v: number) =
           onClick={() => onChange(star)}
           onMouseEnter={() => setHovered(star)}
           onMouseLeave={() => setHovered(0)}
-          className="text-2xl leading-none focus:outline-none"
+          className="text-2xl leading-none focus:outline-none transition-colors"
+          style={{ color: (hovered || value) >= star ? '#FF9500' : '#E8E8ED' }}
         >
-          <span className={(hovered || value) >= star ? 'text-yellow-400' : 'text-gray-300'}>
-            ★
-          </span>
+          ★
         </button>
       ))}
     </div>
@@ -78,38 +77,58 @@ function AssignmentCard({
   }
 
   return (
-    <div className="bg-white rounded-lg shadow p-6 space-y-4">
+    <div
+      className="rounded-2xl p-6 space-y-5"
+      style={{ background: '#fff', border: '1px solid var(--border)' }}
+    >
       <div>
-        <h2 className="text-base font-semibold text-gray-800">
-          Review for {assignment.review.employee.name}
+        <h2
+          className="text-base font-semibold"
+          style={{ color: 'var(--foreground)', letterSpacing: '-0.02em' }}
+        >
+          {assignment.review.employee.name}
         </h2>
-        <p className="text-sm text-gray-500 mt-0.5">{assignment.review.period}</p>
+        <p className="text-sm mt-0.5" style={{ color: 'var(--muted)' }}>
+          {assignment.review.period}
+        </p>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4">
+      <form onSubmit={handleSubmit} className="space-y-5">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Rating</label>
+          <label className="block text-xs font-medium mb-2.5" style={{ color: 'var(--muted)' }}>
+            Rating
+          </label>
           <StarInput value={rating} onChange={setRating} />
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">Comments</label>
+          <label className="block text-xs font-medium mb-2" style={{ color: 'var(--muted)' }}>
+            Comments
+          </label>
           <textarea
             required
             rows={4}
             value={comments}
             onChange={(e) => setComments(e.target.value)}
             placeholder="Share your feedback…"
-            className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+            className="w-full rounded-xl px-4 py-3 text-sm outline-none resize-none transition-colors"
+            style={{
+              background: '#F5F5F7',
+              border: '1px solid transparent',
+              color: 'var(--foreground)',
+            }}
+            onFocus={(e) => (e.currentTarget.style.border = '1px solid #1D1D1F')}
+            onBlur={(e) => (e.currentTarget.style.border = '1px solid transparent')}
           />
         </div>
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p className="text-xs" style={{ color: '#FF3B30' }}>{error}</p>}
 
         <button
           type="submit"
           disabled={submitting}
-          className="bg-blue-600 text-white text-sm px-5 py-2 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="text-sm font-medium rounded-xl px-6 py-2.5 transition-opacity disabled:opacity-50"
+          style={{ background: '#000', color: '#fff' }}
         >
           {submitting ? 'Submitting…' : 'Submit Feedback'}
         </button>
@@ -150,15 +169,29 @@ export default function EmployeePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto px-6 py-8">
-      <h1 className="text-2xl font-semibold text-gray-800 mb-6">My Pending Reviews</h1>
+    <div className="max-w-2xl mx-auto px-6 py-10">
+      <h1
+        className="text-3xl font-bold mb-8"
+        style={{ color: 'var(--foreground)', letterSpacing: '-0.03em' }}
+      >
+        Pending Reviews
+      </h1>
 
-      {loading && <p className="text-sm text-gray-500">Loading…</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {loading && (
+        <p className="text-sm" style={{ color: 'var(--muted)' }}>Loading…</p>
+      )}
+      {error && (
+        <p className="text-sm" style={{ color: '#FF3B30' }}>{error}</p>
+      )}
 
       {!loading && !error && assignments.length === 0 && (
-        <div className="bg-white rounded-lg shadow p-8 text-center">
-          <p className="text-gray-500">You have no pending reviews.</p>
+        <div
+          className="rounded-2xl p-10 text-center"
+          style={{ background: '#fff', border: '1px solid var(--border)' }}
+        >
+          <p className="text-sm font-medium" style={{ color: 'var(--muted)' }}>
+            All caught up — no pending reviews.
+          </p>
         </div>
       )}
 

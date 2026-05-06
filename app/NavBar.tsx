@@ -18,7 +18,6 @@ export default function NavBar() {
       .catch(() => setUser(null))
   }, [pathname])
 
-  // Don't render nav on login page
   if (pathname === '/login' || !user) return null
 
   async function handleLogout() {
@@ -28,28 +27,45 @@ export default function NavBar() {
   }
 
   return (
-    <nav className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between">
-      <span className="font-semibold text-gray-800">Performance Reviews</span>
+    <nav
+      className="px-6 flex items-center justify-between"
+      style={{
+        background: 'rgba(255,255,255,0.85)',
+        backdropFilter: 'saturate(180%) blur(20px)',
+        WebkitBackdropFilter: 'saturate(180%) blur(20px)',
+        borderBottom: '1px solid var(--border)',
+        height: '52px',
+        position: 'sticky',
+        top: 0,
+        zIndex: 50,
+      }}
+    >
+      <span
+        className="text-sm font-semibold tracking-tight"
+        style={{ color: 'var(--foreground)', letterSpacing: '-0.01em' }}
+      >
+        CySeck
+      </span>
       <div className="flex items-center gap-4">
-        <span className="text-sm text-gray-600">
-          {user.role === 'admin' ? (
-            <span className="inline-flex items-center gap-1.5">
-              <span className="bg-purple-100 text-purple-700 text-xs font-medium px-2 py-0.5 rounded">
-                Admin
-              </span>
-            </span>
-          ) : (
-            <span className="bg-blue-100 text-blue-700 text-xs font-medium px-2 py-0.5 rounded">
-              Employee
-            </span>
-          )}
+        <span
+          className="text-xs font-medium px-2.5 py-1 rounded-full"
+          style={{
+            background: user.role === 'admin' ? '#1D1D1F' : '#F5F5F7',
+            color: user.role === 'admin' ? '#FFFFFF' : '#6E6E73',
+            border: user.role === 'admin' ? 'none' : '1px solid var(--border)',
+          }}
+        >
+          {user.role === 'admin' ? 'Admin' : 'Employee'}
         </span>
         <button
           onClick={handleLogout}
           disabled={loggingOut}
-          className="text-sm text-gray-500 hover:text-gray-800 disabled:opacity-50"
+          className="text-sm disabled:opacity-40 transition-opacity"
+          style={{ color: 'var(--muted)' }}
+          onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--foreground)')}
+          onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--muted)')}
         >
-          {loggingOut ? 'Signing out...' : 'Sign out'}
+          {loggingOut ? 'Signing out…' : 'Sign out'}
         </button>
       </div>
     </nav>

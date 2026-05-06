@@ -38,13 +38,30 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <div className="bg-white rounded-lg shadow p-8 w-full max-w-sm">
-        <h1 className="text-2xl font-semibold text-gray-800 mb-6">Sign in</h1>
+    <div
+      className="min-h-screen flex flex-col items-center justify-center px-6"
+      style={{ background: '#FFFFFF' }}
+    >
+      <div className="w-full max-w-sm">
+        {/* Logo / wordmark */}
+        <div className="mb-10 text-center">
+          <span
+            className="text-2xl font-bold tracking-tight"
+            style={{ color: 'var(--foreground)', letterSpacing: '-0.03em' }}
+          >
+            CySeck
+          </span>
+          <p className="mt-1 text-sm" style={{ color: 'var(--muted)' }}>
+            Performance Reviews
+          </p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              className="block text-xs font-medium mb-1.5"
+              style={{ color: 'var(--muted)' }}
+            >
               Email
             </label>
             <input
@@ -52,13 +69,23 @@ export default function LoginPage() {
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="you@company.com"
+              className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all"
+              style={{
+                background: '#F5F5F7',
+                border: '1px solid transparent',
+                color: 'var(--foreground)',
+              }}
+              onFocus={(e) => (e.currentTarget.style.border = '1px solid #1D1D1F')}
+              onBlur={(e) => (e.currentTarget.style.border = '1px solid transparent')}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              className="block text-xs font-medium mb-1.5"
+              style={{ color: 'var(--muted)' }}
+            >
               Password
             </label>
             <input
@@ -66,21 +93,31 @@ export default function LoginPage() {
               required
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="••••••••"
+              className="w-full rounded-xl px-4 py-3 text-sm outline-none transition-all"
+              style={{
+                background: '#F5F5F7',
+                border: '1px solid transparent',
+                color: 'var(--foreground)',
+              }}
+              onFocus={(e) => (e.currentTarget.style.border = '1px solid #1D1D1F')}
+              onBlur={(e) => (e.currentTarget.style.border = '1px solid transparent')}
             />
           </div>
 
           {error && (
-            <p className="text-sm text-red-600">{error}</p>
+            <p className="text-xs" style={{ color: '#FF3B30' }}>
+              {error}
+            </p>
           )}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 text-white rounded px-4 py-2 text-sm font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full rounded-xl py-3 text-sm font-semibold transition-opacity disabled:opacity-50"
+            style={{ background: '#000000', color: '#FFFFFF' }}
           >
-            {loading ? 'Signing in...' : 'Sign in'}
+            {loading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
       </div>
