@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
@@ -41,7 +42,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       }
     }
 
-    const review = await prisma.$transaction(async (tx) => {
+    const review = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const current = await tx.review.findUnique({ where: { id } })
       if (!current) throw Object.assign(new Error('Not found'), { code: 'P2025' })
 
