@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
+type Tx = Parameters<Parameters<typeof prisma.$transaction>[0]>[0]
+
 const reviewInclude = {
   employee: { select: { id: true, name: true, email: true } },
   assignments: {
@@ -96,7 +98,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'One or more employee IDs are invalid' }, { status: 400 })
     }
 
-    const review = await prisma.$transaction(async (tx) => {
+    const review = await prisma.$transaction(async (tx: Tx) => {
       const created = await tx.review.create({
         data: { employeeId, period: period.trim() },
       })
