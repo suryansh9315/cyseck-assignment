@@ -3,6 +3,15 @@ import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function validatePassword(password: string): string | null {
+  if (password.length < 8) return 'Password must be at least 8 characters.'
+  if (!/[0-9]/.test(password)) return 'Password must contain at least one number.'
+  if (!/[^a-zA-Z0-9]/.test(password)) return 'Password must contain at least one special character.'
+  return null
+}
+
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const user = await getCurrentUser()
   if (!user || user.role !== 'admin') {
@@ -18,10 +27,30 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: 'role must be admin or employee' }, { status: 400 })
     }
 
+    if (email && !EMAIL_RE.test(email)) {
+      return NextResponse.json({ error: 'Invalid email address' }, { status: 400 })
+    }
+
+    if (password) {
+      const passwordError = validatePassword(password)
+      if (passwordError) {
+        return NextResponse.json({ error: passwordError }, { status: 400 })
+      }
+    }
+
+    const target = await prisma.employee.findUnique({ where: { id }, select: { id: true, role: true } })
+    if (!target) {
+      return NextResponse.json({ error: 'Employee not found' }, { status: 404 })
+    }
+
+    if (target.role === 'admin' && role && role !== 'admin') {
+      return NextResponse.json({ error: 'Admin role cannot be changed' }, { status: 403 })
+    }
+
     const data: Record<string, unknown> = {}
-    if (name) data.name = name
-    if (email) data.email = email
-    if (role) data.role = role
+    if (name) data.name = name.trim()
+    if (email) data.email = email.trim().toLowerCase()
+    if (role && target.role !== 'admin') data.role = role
     if (password) data.password = await bcrypt.hash(password, 10)
 
     const employee = await prisma.employee.update({
@@ -47,6 +76,10 @@ export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ 
   }
 
   const { id } = await params
+
+  if (id === user.userId) {
+    return NextResponse.json({ error: 'You cannot delete your own account' }, { status: 403 })
+  }
 
   try {
     await prisma.employee.delete({ where: { id } })

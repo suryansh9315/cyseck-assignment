@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 
-type User = { userId: string; role: 'admin' | 'employee' }
+type User = { userId: string; role: 'admin' | 'employee'; name: string }
 
 export default function NavBar() {
   const router = useRouter()
@@ -12,6 +12,7 @@ export default function NavBar() {
   const [loggingOut, setLoggingOut] = useState(false)
 
   useEffect(() => {
+    setLoggingOut(false)
     fetch('/api/auth/me')
       .then((r) => (r.ok ? r.json() : null))
       .then((data) => setUser(data))
@@ -47,6 +48,9 @@ export default function NavBar() {
         CySeck
       </span>
       <div className="flex items-center gap-4">
+        <span className="text-sm" style={{ color: 'var(--foreground)' }}>
+          {user.name}
+        </span>
         <span
           className="text-xs font-medium px-2.5 py-1 rounded-full"
           style={{
@@ -60,7 +64,7 @@ export default function NavBar() {
         <button
           onClick={handleLogout}
           disabled={loggingOut}
-          className="text-sm disabled:opacity-40 transition-opacity"
+          className="text-sm cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed transition-opacity"
           style={{ color: 'var(--muted)' }}
           onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--foreground)')}
           onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--muted)')}

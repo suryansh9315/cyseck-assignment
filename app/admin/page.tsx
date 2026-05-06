@@ -3,7 +3,20 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+function EyeIcon({ open }: { open: boolean }) {
+  return open ? (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  ) : (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94" />
+      <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19" />
+      <line x1="1" y1="1" x2="23" y2="23" />
+    </svg>
+  )
+}
 
 type Employee = {
   id: string
@@ -25,13 +38,20 @@ type Review = {
   }[]
 }
 
-// ─── Shared input style ───────────────────────────────────────────────────────
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-const inputCls =
-  'w-full rounded-xl px-4 py-2.5 text-sm outline-none transition-colors'
-const inputStyle = {
-  background: '#F5F5F7',
-  border: '1px solid transparent',
+function validateEmailPassword(email: string, password: string): string {
+  if (!EMAIL_RE.test(email)) return 'Enter a valid email address.'
+  if (password.length < 8) return 'Password must be at least 8 characters.'
+  if (!/[0-9]/.test(password)) return 'Password must contain at least one number.'
+  if (!/[^a-zA-Z0-9]/.test(password)) return 'Password must contain at least one special character.'
+  return ''
+}
+
+const inputCls = 'w-full rounded-xl px-4 py-2.5 text-sm outline-none transition-colors'
+const inputOnWhite = {
+  background: '#fff',
+  border: '1px solid var(--border)',
   color: 'var(--foreground)',
 }
 
@@ -39,10 +59,82 @@ function focusInput(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
   e.currentTarget.style.border = '1px solid #1D1D1F'
 }
 function blurInput(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
-  e.currentTarget.style.border = '1px solid transparent'
+  e.currentTarget.style.border = '1px solid var(--border)'
 }
 
-// ─── Employee Tab ─────────────────────────────────────────────────────────────
+function DeleteModal({
+  employeeName,
+  onConfirm,
+  onCancel,
+  deleting,
+}: {
+  employeeName: string
+  onConfirm: () => void
+  onCancel: () => void
+  deleting: boolean
+}) {
+  const [input, setInput] = useState('')
+  const match = input === employeeName
+
+  return (
+    <div
+      className="fixed inset-0 flex items-center justify-center px-4"
+      style={{ zIndex: 100, background: 'rgba(0,0,0,0.35)', backdropFilter: 'blur(6px)', WebkitBackdropFilter: 'blur(6px)' }}
+      onClick={onCancel}
+    >
+      <div
+        className="w-full max-w-md rounded-2xl p-7 space-y-5"
+        style={{ background: '#fff', border: '1px solid var(--border)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="space-y-1.5">
+          <h2 className="text-base font-semibold" style={{ color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
+            Delete employee
+          </h2>
+          <p className="text-sm" style={{ color: 'var(--muted)' }}>
+            This will permanently delete <span className="font-medium" style={{ color: 'var(--foreground)' }}>{employeeName}</span> along
+            with all their reviews and assignments. This action cannot be undone.
+          </p>
+        </div>
+
+        <div>
+          <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>
+            Type <span className="font-medium" style={{ color: 'var(--foreground)' }}>{employeeName}</span> to confirm
+          </label>
+          <input
+            autoFocus
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder={employeeName}
+            className="w-full rounded-xl px-4 py-2.5 text-sm outline-none transition-colors"
+            style={{ background: '#F5F5F7', border: '1px solid var(--border)', color: 'var(--foreground)' }}
+            onFocus={(e) => (e.currentTarget.style.border = '1px solid #FF3B30')}
+            onBlur={(e) => (e.currentTarget.style.border = '1px solid var(--border)')}
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <button
+            onClick={onConfirm}
+            disabled={!match || deleting}
+            className="text-sm font-medium rounded-xl px-5 py-2.5 cursor-pointer transition-opacity hover:opacity-75 disabled:opacity-40 disabled:cursor-not-allowed"
+            style={{ background: '#FF3B30', color: '#fff' }}
+          >
+            {deleting ? 'Deleting…' : 'Delete employee'}
+          </button>
+          <button
+            onClick={onCancel}
+            disabled={deleting}
+            className="text-sm font-medium cursor-pointer hover:opacity-60 transition-opacity disabled:opacity-40"
+            style={{ color: 'var(--muted)' }}
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function EmployeesTab() {
   const [employees, setEmployees] = useState<Employee[]>([])
@@ -53,12 +145,15 @@ function EmployeesTab() {
   const [addForm, setAddForm] = useState({ name: '', email: '', role: 'employee', password: '' })
   const [addError, setAddError] = useState('')
   const [adding, setAdding] = useState(false)
+  const [showAddPassword, setShowAddPassword] = useState(false)
 
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState({ name: '', email: '', role: 'employee', password: '' })
   const [editError, setEditError] = useState('')
   const [saving, setSaving] = useState(false)
+  const [showEditPassword, setShowEditPassword] = useState(false)
 
+  const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
   async function fetchEmployees() {
@@ -79,6 +174,8 @@ function EmployeesTab() {
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
+    const validationError = validateEmailPassword(addForm.email, addForm.password)
+    if (validationError) { setAddError(validationError); return }
     setAddError('')
     setAdding(true)
     try {
@@ -108,6 +205,12 @@ function EmployeesTab() {
   async function handleEdit(e: React.FormEvent) {
     e.preventDefault()
     if (!editingId) return
+    if (editForm.password) {
+      const validationError = validateEmailPassword(editForm.email, editForm.password)
+      if (validationError) { setEditError(validationError); return }
+    } else {
+      if (!EMAIL_RE.test(editForm.email)) { setEditError('Enter a valid email address.'); return }
+    }
     setEditError('')
     setSaving(true)
     try {
@@ -133,11 +236,12 @@ function EmployeesTab() {
     }
   }
 
-  async function handleDelete(id: string) {
-    if (!confirm('Delete this employee? All their reviews and assignments will also be removed.')) return
-    setDeletingId(id)
+  async function confirmDelete() {
+    if (!deleteTarget) return
+    setDeletingId(deleteTarget.id)
     try {
-      await fetch(`/api/employees/${id}`, { method: 'DELETE' })
+      await fetch(`/api/employees/${deleteTarget.id}`, { method: 'DELETE' })
+      setDeleteTarget(null)
       await fetchEmployees()
     } finally {
       setDeletingId(null)
@@ -153,13 +257,15 @@ function EmployeesTab() {
         <h2 className="text-lg font-semibold" style={{ color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
           Employees
         </h2>
-        <button
-          onClick={() => { setShowAdd((v) => !v); setAddError('') }}
-          className="text-sm font-medium rounded-xl px-4 py-2 transition-opacity"
-          style={{ background: showAdd ? '#F5F5F7' : '#000', color: showAdd ? 'var(--foreground)' : '#fff' }}
-        >
-          {showAdd ? 'Cancel' : '+ Add Employee'}
-        </button>
+        {!showAdd && (
+          <button
+            onClick={() => setShowAdd(true)}
+            className="text-sm font-medium rounded-xl px-4 py-2 cursor-pointer transition-opacity hover:opacity-75"
+            style={{ background: '#000', color: '#fff' }}
+          >
+            + Add Employee
+          </button>
+        )}
       </div>
 
       {showAdd && (
@@ -179,7 +285,7 @@ function EmployeesTab() {
                 value={addForm.name}
                 onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
                 className={inputCls}
-                style={inputStyle}
+                style={inputOnWhite}
                 onFocus={focusInput}
                 onBlur={blurInput}
               />
@@ -192,7 +298,7 @@ function EmployeesTab() {
                 value={addForm.email}
                 onChange={(e) => setAddForm({ ...addForm, email: e.target.value })}
                 className={inputCls}
-                style={inputStyle}
+                style={inputOnWhite}
                 onFocus={focusInput}
                 onBlur={blurInput}
               />
@@ -202,8 +308,8 @@ function EmployeesTab() {
               <select
                 value={addForm.role}
                 onChange={(e) => setAddForm({ ...addForm, role: e.target.value })}
-                className={inputCls}
-                style={inputStyle}
+                className={`${inputCls} cursor-pointer`}
+                style={inputOnWhite}
                 onFocus={focusInput}
                 onBlur={blurInput}
               >
@@ -212,28 +318,52 @@ function EmployeesTab() {
               </select>
             </div>
             <div>
-              <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Password</label>
-              <input
-                type="password"
-                required
-                value={addForm.password}
-                onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
-                className={inputCls}
-                style={inputStyle}
-                onFocus={focusInput}
-                onBlur={blurInput}
-              />
+              <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>
+                Password{' '}
+                <span style={{ color: '#AEAEB2' }}>(min 8 chars, 1 number, 1 special)</span>
+              </label>
+              <div className="relative">
+                <input
+                  type={showAddPassword ? 'text' : 'password'}
+                  required
+                  value={addForm.password}
+                  onChange={(e) => setAddForm({ ...addForm, password: e.target.value })}
+                  className={`${inputCls} pr-10`}
+                  style={inputOnWhite}
+                  onFocus={focusInput}
+                  onBlur={blurInput}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAddPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer transition-opacity hover:opacity-60"
+                  style={{ color: 'var(--muted)' }}
+                  tabIndex={-1}
+                >
+                  <EyeIcon open={showAddPassword} />
+                </button>
+              </div>
             </div>
           </div>
           {addError && <p className="text-xs" style={{ color: '#FF3B30' }}>{addError}</p>}
-          <button
-            type="submit"
-            disabled={adding}
-            className="text-sm font-medium rounded-xl px-5 py-2.5 transition-opacity disabled:opacity-50"
-            style={{ background: '#000', color: '#fff' }}
-          >
-            {adding ? 'Adding…' : 'Add Employee'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={adding || !addForm.name.trim() || !EMAIL_RE.test(addForm.email) || validateEmailPassword(addForm.email, addForm.password) !== ''}
+              className="text-sm font-medium rounded-xl px-5 py-2.5 cursor-pointer transition-opacity hover:opacity-75 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: '#000', color: '#fff' }}
+            >
+              {adding ? 'Adding…' : 'Add Employee'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowAdd(false); setAddError('') }}
+              className="text-sm font-medium cursor-pointer hover:opacity-75 transition-opacity"
+              style={{ color: 'var(--muted)' }}
+            >
+              Cancel
+            </button>
+          </div>
         </form>
       )}
 
@@ -256,155 +386,191 @@ function EmployeesTab() {
               </tr>
             </thead>
             <tbody>
-              {employees.map((emp) => (
-                <>
-                  <tr
-                    key={emp.id}
-                    style={{ borderBottom: '1px solid var(--border)' }}
-                  >
-                    <td className="py-3.5 pr-6 font-medium" style={{ color: 'var(--foreground)' }}>
-                      {emp.name}
-                    </td>
-                    <td className="py-3.5 pr-6 text-sm" style={{ color: 'var(--muted)' }}>
-                      {emp.email}
-                    </td>
-                    <td className="py-3.5 pr-6">
-                      <span
-                        className="text-xs font-medium px-2.5 py-1 rounded-full"
-                        style={{
-                          background: emp.role === 'admin' ? '#1D1D1F' : '#F5F5F7',
-                          color: emp.role === 'admin' ? '#fff' : 'var(--muted)',
-                          border: emp.role === 'admin' ? 'none' : '1px solid var(--border)',
-                        }}
-                      >
-                        {emp.role}
-                      </span>
-                    </td>
-                    <td className="py-3.5 pr-6 text-sm" style={{ color: 'var(--muted)' }}>
-                      {new Date(emp.createdAt).toLocaleDateString()}
-                    </td>
-                    <td className="py-3.5">
-                      <div className="flex items-center gap-3">
-                        <button
-                          onClick={() => startEdit(emp)}
-                          className="text-xs font-medium"
-                          style={{ color: 'var(--foreground)' }}
+              {employees.map((emp, index) => {
+                const isLast = index === employees.length - 1
+                const isEditLast = editingId === emp.id && isLast
+                return (
+                  <>
+                    <tr
+                      key={emp.id}
+                      style={{ borderBottom: (isLast && editingId !== emp.id) ? 'none' : '1px solid var(--border)' }}
+                    >
+                      <td className="py-3.5 pr-6 font-medium" style={{ color: 'var(--foreground)' }}>
+                        {emp.name}
+                      </td>
+                      <td className="py-3.5 pr-6 text-sm" style={{ color: 'var(--muted)' }}>
+                        {emp.email}
+                      </td>
+                      <td className="py-3.5 pr-6">
+                        <span
+                          className="text-xs font-medium px-2.5 py-1 rounded-full"
+                          style={{
+                            background: emp.role === 'admin' ? '#1D1D1F' : '#F5F5F7',
+                            color: emp.role === 'admin' ? '#fff' : 'var(--muted)',
+                            border: emp.role === 'admin' ? 'none' : '1px solid var(--border)',
+                          }}
                         >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(emp.id)}
-                          disabled={deletingId === emp.id}
-                          className="text-xs font-medium disabled:opacity-40"
-                          style={{ color: '#FF3B30' }}
-                        >
-                          {deletingId === emp.id ? '…' : 'Delete'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-
-                  {editingId === emp.id && (
-                    <tr key={`${emp.id}-edit`}>
-                      <td colSpan={5} className="py-4" style={{ borderBottom: '1px solid var(--border)' }}>
-                        <form
-                          onSubmit={handleEdit}
-                          className="rounded-2xl p-5 space-y-4"
-                          style={{ background: '#F5F5F7' }}
-                        >
-                          <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
-                            Edit Employee
-                          </p>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Name</label>
-                              <input
-                                required
-                                value={editForm.name}
-                                onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-                                className={inputCls}
-                                style={{ ...inputStyle, background: '#fff' }}
-                                onFocus={focusInput}
-                                onBlur={blurInput}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Email</label>
-                              <input
-                                type="email"
-                                required
-                                value={editForm.email}
-                                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
-                                className={inputCls}
-                                style={{ ...inputStyle, background: '#fff' }}
-                                onFocus={focusInput}
-                                onBlur={blurInput}
-                              />
-                            </div>
-                            <div>
-                              <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Role</label>
-                              <select
-                                value={editForm.role}
-                                onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
-                                className={inputCls}
-                                style={{ ...inputStyle, background: '#fff' }}
-                                onFocus={focusInput}
-                                onBlur={blurInput}
-                              >
-                                <option value="employee">Employee</option>
-                                <option value="admin">Admin</option>
-                              </select>
-                            </div>
-                            <div>
-                              <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>
-                                New Password{' '}
-                                <span style={{ color: '#AEAEB2' }}>(leave blank to keep)</span>
-                              </label>
-                              <input
-                                type="password"
-                                value={editForm.password}
-                                onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
-                                className={inputCls}
-                                style={{ ...inputStyle, background: '#fff' }}
-                                onFocus={focusInput}
-                                onBlur={blurInput}
-                              />
-                            </div>
-                          </div>
-                          {editError && <p className="text-xs" style={{ color: '#FF3B30' }}>{editError}</p>}
-                          <div className="flex items-center gap-3">
-                            <button
-                              type="submit"
-                              disabled={saving}
-                              className="text-sm font-medium rounded-xl px-5 py-2.5 transition-opacity disabled:opacity-50"
-                              style={{ background: '#000', color: '#fff' }}
-                            >
-                              {saving ? 'Saving…' : 'Save'}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => setEditingId(null)}
-                              className="text-sm font-medium"
-                              style={{ color: 'var(--muted)' }}
-                            >
-                              Cancel
-                            </button>
-                          </div>
-                        </form>
+                          {emp.role}
+                        </span>
+                      </td>
+                      <td className="py-3.5 pr-6 text-sm" style={{ color: 'var(--muted)' }}>
+                        {new Date(emp.createdAt).toLocaleDateString()}
+                      </td>
+                      <td className="py-3.5">
+                        <div className="flex items-center gap-3">
+                          <button
+                            onClick={() => startEdit(emp)}
+                            className="text-xs font-medium cursor-pointer hover:opacity-60 transition-opacity"
+                            style={{ color: 'var(--foreground)' }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => setDeleteTarget(emp)}
+                            disabled={deletingId === emp.id}
+                            className="text-xs font-medium cursor-pointer hover:opacity-60 transition-opacity disabled:opacity-40 disabled:cursor-not-allowed"
+                            style={{ color: '#FF3B30' }}
+                          >
+                            {deletingId === emp.id ? '…' : 'Delete'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
-                  )}
-                </>
-              ))}
+
+                    {editingId === emp.id && (
+                      <tr key={`${emp.id}-edit`}>
+                        <td colSpan={5} className="py-4" style={{ borderBottom: isEditLast ? 'none' : '1px solid var(--border)' }}>
+                          <form
+                            onSubmit={handleEdit}
+                            className="rounded-2xl p-5 space-y-4"
+                            style={{ background: '#F5F5F7' }}
+                          >
+                            <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
+                              Edit Employee
+                            </p>
+                            <div className="grid grid-cols-2 gap-3">
+                              <div>
+                                <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Name</label>
+                                <input
+                                  required
+                                  value={editForm.name}
+                                  onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                  className={inputCls}
+                                  style={inputOnWhite}
+                                  onFocus={focusInput}
+                                  onBlur={blurInput}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Email</label>
+                                <input
+                                  type="email"
+                                  required
+                                  value={editForm.email}
+                                  onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                                  className={inputCls}
+                                  style={inputOnWhite}
+                                  onFocus={focusInput}
+                                  onBlur={blurInput}
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>Role</label>
+                                {emp.role === 'admin' ? (
+                                  <div
+                                    className="w-full rounded-xl px-4 py-2.5 text-sm"
+                                    style={{
+                                      background: '#F0F0F2',
+                                      border: '1px solid var(--border)',
+                                      color: 'var(--muted)',
+                                    }}
+                                  >
+                                    Admin{' '}
+                                    <span style={{ color: '#AEAEB2', fontSize: '11px' }}>(cannot change)</span>
+                                  </div>
+                                ) : (
+                                  <select
+                                    value={editForm.role}
+                                    onChange={(e) => setEditForm({ ...editForm, role: e.target.value })}
+                                    className={`${inputCls} cursor-pointer`}
+                                    style={inputOnWhite}
+                                    onFocus={focusInput}
+                                    onBlur={blurInput}
+                                  >
+                                    <option value="employee">Employee</option>
+                                    <option value="admin">Admin</option>
+                                  </select>
+                                )}
+                              </div>
+                              <div>
+                                <label className="block text-xs mb-1.5" style={{ color: 'var(--muted)' }}>
+                                  New Password{' '}
+                                  <span style={{ color: '#AEAEB2' }}>(leave blank to keep)</span>
+                                </label>
+                                <div className="relative">
+                                  <input
+                                    type={showEditPassword ? 'text' : 'password'}
+                                    value={editForm.password}
+                                    onChange={(e) => setEditForm({ ...editForm, password: e.target.value })}
+                                    className={`${inputCls} pr-10`}
+                                    style={inputOnWhite}
+                                    onFocus={focusInput}
+                                    onBlur={blurInput}
+                                  />
+                                  <button
+                                    type="button"
+                                    onClick={() => setShowEditPassword((v) => !v)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 cursor-pointer transition-opacity hover:opacity-60"
+                                    style={{ color: 'var(--muted)' }}
+                                    tabIndex={-1}
+                                  >
+                                    <EyeIcon open={showEditPassword} />
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
+                            {editError && <p className="text-xs" style={{ color: '#FF3B30' }}>{editError}</p>}
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="submit"
+                                disabled={saving || !editForm.name.trim() || !EMAIL_RE.test(editForm.email) || (editForm.password !== '' && validateEmailPassword(editForm.email, editForm.password) !== '')}
+                                className="text-sm font-medium rounded-xl px-5 py-2.5 cursor-pointer transition-opacity hover:opacity-75 disabled:opacity-50 disabled:cursor-not-allowed"
+                                style={{ background: '#000', color: '#fff' }}
+                              >
+                                {saving ? 'Saving…' : 'Save'}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingId(null)}
+                                className="text-sm font-medium cursor-pointer hover:opacity-60 transition-opacity"
+                                style={{ color: 'var(--muted)' }}
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          </form>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                )
+              })}
             </tbody>
           </table>
         </div>
       )}
+
+      {deleteTarget && (
+        <DeleteModal
+          employeeName={deleteTarget.name}
+          onConfirm={confirmDelete}
+          onCancel={() => setDeleteTarget(null)}
+          deleting={deletingId === deleteTarget.id}
+        />
+      )}
     </div>
   )
 }
-
-// ─── Reviews Tab ──────────────────────────────────────────────────────────────
 
 function ReviewsTab({ employees }: { employees: Employee[] }) {
   const [reviews, setReviews] = useState<Review[]>([])
@@ -474,19 +640,21 @@ function ReviewsTab({ employees }: { employees: Employee[] }) {
         <h2 className="text-lg font-semibold" style={{ color: 'var(--foreground)', letterSpacing: '-0.02em' }}>
           Reviews
         </h2>
-        <button
-          onClick={() => { setShowCreate((v) => !v); setCreateError('') }}
-          className="text-sm font-medium rounded-xl px-4 py-2 transition-opacity"
-          style={{ background: showCreate ? '#F5F5F7' : '#000', color: showCreate ? 'var(--foreground)' : '#fff' }}
-        >
-          {showCreate ? 'Cancel' : '+ Create Review'}
-        </button>
+        {!showCreate && (
+          <button
+            onClick={() => setShowCreate(true)}
+            className="text-sm font-medium rounded-xl px-4 py-2 cursor-pointer transition-opacity hover:opacity-75"
+            style={{ background: '#000', color: '#fff' }}
+          >
+            + Create Review
+          </button>
+        )}
       </div>
 
       {showCreate && (
         <form
           onSubmit={handleCreate}
-          className="rounded-2xl p-5 space-y-5"
+          className="rounded-2xl p-5 space-y-4"
           style={{ background: '#F5F5F7' }}
         >
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
@@ -501,8 +669,8 @@ function ReviewsTab({ employees }: { employees: Employee[] }) {
                 required
                 value={createForm.employeeId}
                 onChange={(e) => setCreateForm({ ...createForm, employeeId: e.target.value, reviewerIds: [] })}
-                className={inputCls}
-                style={inputStyle}
+                className={`${inputCls} cursor-pointer`}
+                style={inputOnWhite}
                 onFocus={focusInput}
                 onBlur={blurInput}
               >
@@ -520,7 +688,7 @@ function ReviewsTab({ employees }: { employees: Employee[] }) {
                 value={createForm.period}
                 onChange={(e) => setCreateForm({ ...createForm, period: e.target.value })}
                 className={inputCls}
-                style={inputStyle}
+                style={inputOnWhite}
                 onFocus={focusInput}
                 onBlur={blurInput}
               />
@@ -537,53 +705,66 @@ function ReviewsTab({ employees }: { employees: Employee[] }) {
                 <p className="text-xs" style={{ color: '#AEAEB2' }}>No other employees available.</p>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
-                  {eligibleReviewers.map((emp) => (
-                    <label
-                      key={emp.id}
-                      className="flex items-center gap-2.5 text-sm cursor-pointer rounded-xl px-3 py-2.5 transition-colors"
-                      style={{
-                        background: createForm.reviewerIds.includes(emp.id) ? '#1D1D1F' : '#fff',
-                        color: createForm.reviewerIds.includes(emp.id) ? '#fff' : 'var(--foreground)',
-                        border: '1px solid var(--border)',
-                      }}
-                    >
-                      <input
-                        type="checkbox"
-                        checked={createForm.reviewerIds.includes(emp.id)}
-                        onChange={() => toggleReviewer(emp.id)}
-                        className="hidden"
-                      />
-                      <span
-                        className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+                  {eligibleReviewers.map((emp) => {
+                    const selected = createForm.reviewerIds.includes(emp.id)
+                    return (
+                      <label
+                        key={emp.id}
+                        className="flex items-center gap-2.5 text-sm cursor-pointer rounded-xl px-3 py-2.5 transition-colors"
                         style={{
-                          background: createForm.reviewerIds.includes(emp.id) ? 'rgba(255,255,255,0.2)' : '#F5F5F7',
-                          border: '1px solid',
-                          borderColor: createForm.reviewerIds.includes(emp.id) ? 'transparent' : 'var(--border)',
+                          background: selected ? '#1D1D1F' : '#fff',
+                          color: selected ? '#fff' : 'var(--foreground)',
+                          border: '1px solid var(--border)',
                         }}
                       >
-                        {createForm.reviewerIds.includes(emp.id) && (
-                          <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                            <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-                          </svg>
-                        )}
-                      </span>
-                      {emp.name}
-                    </label>
-                  ))}
+                        <input
+                          type="checkbox"
+                          checked={selected}
+                          onChange={() => toggleReviewer(emp.id)}
+                          className="hidden"
+                        />
+                        <span
+                          className="w-4 h-4 rounded flex items-center justify-center flex-shrink-0"
+                          style={{
+                            background: selected ? 'rgba(255,255,255,0.2)' : '#F5F5F7',
+                            border: '1px solid',
+                            borderColor: selected ? 'transparent' : 'var(--border)',
+                          }}
+                        >
+                          {selected && (
+                            <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
+                              <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+                            </svg>
+                          )}
+                        </span>
+                        {emp.name}
+                      </label>
+                    )
+                  })}
                 </div>
               )}
             </div>
           )}
 
           {createError && <p className="text-xs" style={{ color: '#FF3B30' }}>{createError}</p>}
-          <button
-            type="submit"
-            disabled={creating || createForm.reviewerIds.length === 0}
-            className="text-sm font-medium rounded-xl px-5 py-2.5 transition-opacity disabled:opacity-50"
-            style={{ background: '#000', color: '#fff' }}
-          >
-            {creating ? 'Creating…' : 'Create Review'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="submit"
+              disabled={creating || createForm.reviewerIds.length === 0}
+              className="text-sm font-medium rounded-xl px-5 py-2.5 cursor-pointer transition-opacity hover:opacity-75 disabled:opacity-50 disabled:cursor-not-allowed"
+              style={{ background: '#000', color: '#fff' }}
+            >
+              {creating ? 'Creating…' : 'Create Review'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setShowCreate(false); setCreateError('') }}
+              className="text-sm font-medium cursor-pointer hover:opacity-60 transition-opacity"
+              style={{ color: 'var(--muted)' }}
+            >
+              Cancel
+            </button>
+          </div>
         </form>
       )}
 
@@ -606,10 +787,11 @@ function ReviewsTab({ employees }: { employees: Employee[] }) {
               </tr>
             </thead>
             <tbody>
-              {reviews.map((review) => {
+              {reviews.map((review, index) => {
                 const submitted = review.assignments.filter((a) => a.feedback !== null).length
+                const isLast = index === reviews.length - 1
                 return (
-                  <tr key={review.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                  <tr key={review.id} style={{ borderBottom: isLast ? 'none' : '1px solid var(--border)' }}>
                     <td className="py-3.5 pr-6 font-medium" style={{ color: 'var(--foreground)' }}>
                       {review.employee.name}
                     </td>
@@ -636,7 +818,7 @@ function ReviewsTab({ employees }: { employees: Employee[] }) {
                     <td className="py-3.5">
                       <Link
                         href={`/admin/reviews/${review.id}`}
-                        className="text-xs font-medium"
+                        className="text-xs font-medium hover:opacity-60 transition-opacity"
                         style={{ color: 'var(--foreground)' }}
                       >
                         View →
@@ -653,8 +835,6 @@ function ReviewsTab({ employees }: { employees: Employee[] }) {
   )
 }
 
-// ─── Admin Dashboard ──────────────────────────────────────────────────────────
-
 export default function AdminPage() {
   const [tab, setTab] = useState<'employees' | 'reviews'>('employees')
   const [employees, setEmployees] = useState<Employee[]>([])
@@ -663,7 +843,7 @@ export default function AdminPage() {
     fetch('/api/employees')
       .then((r) => r.json())
       .then(setEmployees)
-      .catch(() => {})
+      .catch(() => { })
   }, [])
 
   return (
@@ -675,7 +855,6 @@ export default function AdminPage() {
         Dashboard
       </h1>
 
-      {/* Tabs */}
       <div
         className="flex gap-1 mb-6 p-1 rounded-xl w-fit"
         style={{ background: '#E8E8ED' }}
@@ -684,7 +863,7 @@ export default function AdminPage() {
           <button
             key={t}
             onClick={() => setTab(t)}
-            className="px-5 py-1.5 text-sm font-medium rounded-lg capitalize transition-all"
+            className="px-5 py-1.5 text-sm font-medium rounded-lg capitalize cursor-pointer transition-all"
             style={{
               background: tab === t ? '#fff' : 'transparent',
               color: tab === t ? 'var(--foreground)' : 'var(--muted)',

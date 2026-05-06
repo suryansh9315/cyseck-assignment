@@ -6,9 +6,8 @@ const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL as str
 const prisma = new PrismaClient({ adapter })
 
 async function main() {
-  const hashedPassword = await bcrypt.hash('password123', 10)
+  const hashedPassword = await bcrypt.hash('Cyseck@123', 10)
 
-  // Upsert employees
   const admin = await prisma.employee.upsert({
     where: { email: 'admin@company.com' },
     update: {},
@@ -41,7 +40,6 @@ async function main() {
 
   console.log('Seeded employees:', [admin, bob, carol, dave, eve].map(e => e.email))
 
-  // Review 1: Bob is being reviewed by Carol and Dave
   const review1 = await prisma.review.create({
     data: {
       employeeId: bob.id,
@@ -56,7 +54,6 @@ async function main() {
     },
   })
 
-  // Review 2: Carol is being reviewed by Bob and Eve
   const review2 = await prisma.review.create({
     data: {
       employeeId: carol.id,

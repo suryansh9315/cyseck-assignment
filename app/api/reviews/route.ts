@@ -22,8 +22,10 @@ export async function GET(req: NextRequest) {
   const reviewerId = searchParams.get('reviewerId')
   const reviewId = searchParams.get('id')
 
-  // Single review lookup (for review detail page)
   if (reviewId) {
+    if (user.role !== 'admin') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     const review = await prisma.review.findUnique({
       where: { id: reviewId },
       include: reviewInclude,
@@ -32,8 +34,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(review)
   }
 
-  // Employee: return pending assignments for a given reviewer
   if (reviewerId) {
+    if (reviewerId !== user.userId) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
     const assignments = await prisma.reviewAssignment.findMany({
       where: { reviewerId, feedback: null },
       include: {
@@ -47,7 +51,6 @@ export async function GET(req: NextRequest) {
     return NextResponse.json(assignments)
   }
 
-  // Admin: return all reviews
   if (user.role !== 'admin') {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
@@ -76,13 +79,26 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    if (typeof period !== 'string' || period.trim().length === 0) {
+      return NextResponse.json({ error: 'period must be a non-empty string' }, { status: 400 })
+    }
+
     if (reviewerIds.includes(employeeId)) {
       return NextResponse.json({ error: 'Employee cannot review themselves' }, { status: 400 })
     }
 
+    const allIds = [...new Set([employeeId, ...reviewerIds])]
+    const found = await prisma.employee.findMany({
+      where: { id: { in: allIds } },
+      select: { id: true },
+    })
+    if (found.length !== allIds.length) {
+      return NextResponse.json({ error: 'One or more employee IDs are invalid' }, { status: 400 })
+    }
+
     const review = await prisma.$transaction(async (tx) => {
       const created = await tx.review.create({
-        data: { employeeId, period },
+        data: { employeeId, period: period.trim() },
       })
       await tx.reviewAssignment.createMany({
         data: reviewerIds.map((reviewerId: string) => ({

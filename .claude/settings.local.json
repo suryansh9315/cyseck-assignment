@@ -5,7 +5,8 @@
       "Bash(npm --version:*)",
       "Bash(npx:*)",
       "Bash(psql:*)",
-      "Bash(docker:*)"
+      "Bash(docker:*)",
+      "Bash(ls:*)"
     ]
   }
 }

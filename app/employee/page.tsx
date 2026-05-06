@@ -2,8 +2,6 @@
 
 import { useEffect, useState } from 'react'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type Assignment = {
   id: string
   review: {
@@ -12,8 +10,6 @@ type Assignment = {
     employee: { id: string; name: string }
   }
 }
-
-// ─── Star Rating Input ────────────────────────────────────────────────────────
 
 function StarInput({ value, onChange }: { value: number; onChange: (v: number) => void }) {
   const [hovered, setHovered] = useState(0)
@@ -35,8 +31,6 @@ function StarInput({ value, onChange }: { value: number; onChange: (v: number) =
     </div>
   )
 }
-
-// ─── Assignment Card ──────────────────────────────────────────────────────────
 
 function AssignmentCard({
   assignment,
@@ -126,8 +120,8 @@ function AssignmentCard({
 
         <button
           type="submit"
-          disabled={submitting}
-          className="text-sm font-medium rounded-xl px-6 py-2.5 transition-opacity disabled:opacity-50"
+          disabled={submitting || rating === 0 || !comments}
+          className="text-sm font-medium rounded-xl px-6 py-2.5 cursor-pointer transition-opacity hover:opacity-75 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ background: '#000', color: '#fff' }}
         >
           {submitting ? 'Submitting…' : 'Submit Feedback'}
@@ -136,8 +130,6 @@ function AssignmentCard({
     </div>
   )
 }
-
-// ─── Employee Dashboard ───────────────────────────────────────────────────────
 
 export default function EmployeePage() {
   const [assignments, setAssignments] = useState<Assignment[]>([])

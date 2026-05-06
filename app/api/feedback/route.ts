@@ -23,7 +23,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'rating must be an integer between 1 and 5' }, { status: 400 })
     }
 
-    // Verify the assignment belongs to the current user
     const assignment = await prisma.reviewAssignment.findUnique({
       where: { id: assignmentId },
     })
@@ -42,7 +41,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json(feedback, { status: 201 })
   } catch (err: unknown) {
-if (err && typeof err === 'object' && 'code' in err && err.code === 'P2002') {
+    if (err && typeof err === 'object' && 'code' in err && err.code === 'P2002') {
       return NextResponse.json({ error: 'Feedback already submitted for this assignment' }, { status: 409 })
     }
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 })

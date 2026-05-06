@@ -8,7 +8,6 @@ export const config = {
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
 
-  // Auth routes are always public
   if (pathname.startsWith('/api/auth/')) {
     return NextResponse.next()
   }
@@ -24,7 +23,6 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
-  // Role-based route protection
   if (pathname.startsWith('/admin') && payload.role !== 'admin') {
     if (isApiRoute) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

@@ -47,13 +47,13 @@ App runs at **http://localhost:3000**.
 
 ## Seed Credentials
 
-| Email               | Password     | Role     |
-|---------------------|--------------|----------|
-| admin@company.com   | password123  | Admin    |
-| bob@company.com     | password123  | Employee |
-| carol@company.com   | password123  | Employee |
-| dave@company.com    | password123  | Employee |
-| eve@company.com     | password123  | Employee |
+| Email               | Password    | Role     |
+|---------------------|-------------|----------|
+| admin@company.com   | Cyseck@123  | Admin    |
+| bob@company.com     | Cyseck@123  | Employee |
+| carol@company.com   | Cyseck@123  | Employee |
+| dave@company.com    | Cyseck@123  | Employee |
+| eve@company.com     | Cyseck@123  | Employee |
 
 ## Pages
 
@@ -81,6 +81,19 @@ App runs at **http://localhost:3000**.
 | PUT    | `/api/reviews/[id]`   | Update period, status, reviewers (admin)         |
 | POST   | `/api/feedback`       | Submit feedback for an assignment (employee)     |
 
+## Password Policy
+
+Passwords must be at least 8 characters and contain at least one number and one special character. This is enforced on the client when creating or updating employees. Seed accounts use `Cyseck@123`.
+
+## Design
+
+- Minimalistic light-only UI (Apple / Uber aesthetic)
+- System font stack (`-apple-system`, SF Pro)
+- No dark mode
+- Color palette: `#F5F5F7` page background, `#FFFFFF` cards, `#1D1D1F` text, `#6E6E73` muted, `#000000` primary actions
+- Password fields have a show/hide toggle
+- Submit buttons are disabled until required fields are filled
+
 ## Assumptions
 
 - **No self-registration** — only admins create employee accounts with an initial password
@@ -90,6 +103,7 @@ App runs at **http://localhost:3000**.
 - **No pagination** — small demo dataset
 - **JWT secret in `.env`** — use a proper secret manager in production
 - **Admin is an employee** — `role = 'admin'` on the `Employee` table; admins can also be assigned as reviewers
+- **Admin role is immutable** — an admin's role cannot be downgraded via the UI
 
 ## Project Structure
 

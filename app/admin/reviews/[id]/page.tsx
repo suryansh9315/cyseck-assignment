@@ -4,8 +4,6 @@ import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-
 type Employee = {
   id: string
   name: string
@@ -35,8 +33,6 @@ type Review = {
   assignments: Assignment[]
 }
 
-// ─── Star display ─────────────────────────────────────────────────────────────
-
 function Stars({ rating }: { rating: number }) {
   return (
     <span className="flex gap-0.5">
@@ -47,22 +43,18 @@ function Stars({ rating }: { rating: number }) {
   )
 }
 
-// ─── Shared input style ───────────────────────────────────────────────────────
-
 const inputCls = 'w-full rounded-xl px-4 py-2.5 text-sm outline-none transition-colors'
 const inputStyle = {
   background: '#F5F5F7',
-  border: '1px solid transparent',
+  border: '1px solid var(--border)',
   color: 'var(--foreground)',
 }
 function focusInput(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
   e.currentTarget.style.border = '1px solid #1D1D1F'
 }
 function blurInput(e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) {
-  e.currentTarget.style.border = '1px solid transparent'
+  e.currentTarget.style.border = '1px solid var(--border)'
 }
-
-// ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ReviewDetailPage() {
   const { id } = useParams<{ id: string }>()
@@ -171,7 +163,6 @@ export default function ReviewDetailPage() {
 
   return (
     <div className="max-w-3xl mx-auto px-6 py-10 space-y-8">
-      {/* Back */}
       <Link
         href="/admin"
         className="text-sm font-medium inline-flex items-center gap-1"
@@ -180,7 +171,6 @@ export default function ReviewDetailPage() {
         ← Dashboard
       </Link>
 
-      {/* Header */}
       <div className="flex items-start justify-between">
         <div>
           <h1
@@ -213,12 +203,11 @@ export default function ReviewDetailPage() {
         </div>
       </div>
 
-      {/* Edit form */}
       {editing && (
         <form
           onSubmit={handleSave}
           className="rounded-2xl p-6 space-y-5"
-          style={{ background: '#F5F5F7' }}
+          style={{ background: '#fff', border: '1px solid var(--border)' }}
         >
           <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: 'var(--muted)' }}>
             Edit Review
@@ -281,7 +270,7 @@ export default function ReviewDetailPage() {
                   >
                     {editReviewerIds.includes(emp.id) && (
                       <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
-                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                        <path d="M1 4L3.5 6.5L9 1" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
                       </svg>
                     )}
                   </span>
@@ -296,7 +285,7 @@ export default function ReviewDetailPage() {
             <button
               type="submit"
               disabled={saving || editReviewerIds.length === 0}
-              className="text-sm font-medium rounded-xl px-5 py-2.5 transition-opacity disabled:opacity-50"
+              className="text-sm font-medium rounded-xl px-5 py-2.5 cursor-pointer transition-opacity hover:opacity-75 disabled:opacity-50 disabled:cursor-not-allowed"
               style={{ background: '#000', color: '#fff' }}
             >
               {saving ? 'Saving…' : 'Save changes'}
@@ -304,7 +293,7 @@ export default function ReviewDetailPage() {
             <button
               type="button"
               onClick={() => setEditing(false)}
-              className="text-sm font-medium"
+              className="text-sm font-medium cursor-pointer hover:opacity-60 transition-opacity"
               style={{ color: 'var(--muted)' }}
             >
               Cancel
@@ -313,7 +302,6 @@ export default function ReviewDetailPage() {
         </form>
       )}
 
-      {/* Feedback section */}
       <div
         className="rounded-2xl p-6 space-y-5"
         style={{ background: '#fff', border: '1px solid var(--border)' }}
