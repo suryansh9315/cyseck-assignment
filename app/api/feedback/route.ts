@@ -25,6 +25,7 @@ export async function POST(req: NextRequest) {
 
     const assignment = await prisma.reviewAssignment.findUnique({
       where: { id: assignmentId },
+      include: { review: { select: { status: true } } },
     })
 
     if (!assignment) {
@@ -33,6 +34,10 @@ export async function POST(req: NextRequest) {
 
     if (assignment.reviewerId !== user.userId) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
+    if (assignment.review.status !== 'open') {
+      return NextResponse.json({ error: 'Review is closed' }, { status: 403 })
     }
 
     const feedback = await prisma.feedback.create({

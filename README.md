@@ -1,15 +1,19 @@
 # Performance Review App
 
-A fullstack employee performance review system built with Next.js, PostgreSQL, Prisma, and Tailwind CSS.
+CySeck is a fullstack employee performance review system. Admins manage employees and review cycles; employees submit peer feedback. The entire application is a single Next.js 16 process, no separate backend service.
 
 ## Stack
 
-- **Next.js 16** — App Router, TypeScript, API Routes
-- **PostgreSQL 16** — via Docker
-- **Prisma 7** — schema, migrations, seeding
-- **Tailwind CSS 4** — styling
-- **jose** — JWT auth (Edge-compatible)
-- **bcryptjs** — password hashing
+| Layer | Technology | Notes |
+|---|---|---|
+| Framework | Next.js 16 (App Router) | Pages + API routes in one process |
+| Language | TypeScript 5 (strict) | `strict: true`, `noEmit` for type checking |
+| Database | PostgreSQL 16 | Hosted in Docker or externally |
+| ORM | Prisma 7 | Driver adapter mode (`PrismaPg`) |
+| Auth | JWT via `jose` | HS256, stored in httpOnly cookie |
+| Passwords | `bcryptjs` | 10 salt rounds |
+| Styling | Tailwind CSS 4 | No config file; `@import "tailwindcss"` |
+| Runtime | Node.js 18+ | Docker or local |
 
 ## Setup
 
@@ -55,80 +59,179 @@ App runs at **http://localhost:3000**.
 | dave@company.com    | Cyseck@123  | Employee |
 | eve@company.com     | Cyseck@123  | Employee |
 
-## Pages
-
-| Route                  | Description                                              |
-|------------------------|----------------------------------------------------------|
-| `/`                    | Redirects to `/login`, `/admin`, or `/employee`          |
-| `/login`               | Email + password sign-in                                 |
-| `/admin`               | Admin dashboard — manage employees and reviews (tabbed)  |
-| `/admin/reviews/[id]`  | Review detail — feedback list, edit period/status/reviewers |
-| `/employee`            | Pending review assignments with inline feedback form     |
-
-## API Routes
-
-| Method | Path                  | Description                                      |
-|--------|-----------------------|--------------------------------------------------|
-| POST   | `/api/auth/login`     | Authenticate, set JWT cookie                     |
-| POST   | `/api/auth/logout`    | Clear JWT cookie                                 |
-| GET    | `/api/auth/me`        | Return current user from JWT                     |
-| GET    | `/api/employees`      | List all employees (admin)                       |
-| POST   | `/api/employees`      | Create employee with hashed password (admin)     |
-| PUT    | `/api/employees/[id]` | Update employee (admin)                          |
-| DELETE | `/api/employees/[id]` | Delete employee + cascade (admin)                |
-| GET    | `/api/reviews`        | List reviews (admin: all; employee: pending)     |
-| POST   | `/api/reviews`        | Create review + assign reviewers (admin)         |
-| PUT    | `/api/reviews/[id]`   | Update period, status, reviewers (admin)         |
-| POST   | `/api/feedback`       | Submit feedback for an assignment (employee)     |
-
-## Password Policy
-
-Passwords must be at least 8 characters and contain at least one number and one special character. This is enforced on the client when creating or updating employees. Seed accounts use `Cyseck@123`.
-
-## Design
-
-- Minimalistic light-only UI (Apple / Uber aesthetic)
-- System font stack (`-apple-system`, SF Pro)
-- No dark mode
-- Color palette: `#F5F5F7` page background, `#FFFFFF` cards, `#1D1D1F` text, `#6E6E73` muted, `#000000` primary actions
-- Password fields have a show/hide toggle
-- Submit buttons are disabled until required fields are filled
-
-## Assumptions
-
-- **No self-registration** — only admins create employee accounts with an initial password
-- **No password reset** — out of scope for this demo
-- **No self-review** — enforced server-side; the subject employee is excluded from reviewer selection
-- **One feedback per assignment** — enforced by a DB unique constraint (`assignmentId`)
-- **No pagination** — small demo dataset
-- **JWT secret in `.env`** — use a proper secret manager in production
-- **Admin is an employee** — `role = 'admin'` on the `Employee` table; admins can also be assigned as reviewers
-- **Admin role is immutable** — an admin's role cannot be downgraded via the UI
-
 ## Project Structure
 
 ```
 ├── app/
-│   ├── api/
-│   │   ├── auth/login, logout, me
-│   │   ├── employees/, employees/[id]
-│   │   ├── reviews/, reviews/[id]
-│   │   └── feedback/
+│   ├── layout.tsx                   # Root layout — mounts NavBar
+│   ├── page.tsx                     # Auth-aware redirect (/, → login/admin/employee)
+│   ├── globals.css                  # Design tokens (CSS vars), body font
+│   ├── NavBar.tsx                   # Sticky nav — user name, role badge, sign out
+│   ├── login/page.tsx               # Login form
 │   ├── admin/
-│   │   ├── page.tsx              # Employees + Reviews tabs
-│   │   └── reviews/[id]/page.tsx # Review detail
-│   ├── employee/page.tsx         # Pending assignments + feedback form
-│   ├── login/page.tsx
-│   ├── NavBar.tsx
-│   ├── layout.tsx
-│   └── page.tsx                  # Auth redirect
+│   │   ├── page.tsx                 # Dashboard: Employees tab + Reviews tab
+│   │   └── reviews/[id]/page.tsx   # Review detail + edit form + feedback list
+│   ├── employee/page.tsx            # Pending assignments + feedback submission
+│   └── api/
+│       ├── auth/login/route.ts      # POST — authenticate, issue JWT
+│       ├── auth/logout/route.ts     # POST — clear JWT cookie
+│       ├── auth/me/route.ts         # GET — current user from JWT + DB
+│       ├── employees/route.ts       # GET list / POST create
+│       ├── employees/[id]/route.ts  # PUT update / DELETE remove
+│       ├── reviews/route.ts         # GET list|pending / POST create
+│       ├── reviews/[id]/route.ts    # PUT update (period, status, reviewers)
+│       └── feedback/route.ts        # POST submit feedback
 ├── lib/
-│   ├── prisma.ts                 # Singleton PrismaClient
-│   └── auth.ts                   # JWT sign/verify/getCurrentUser
+│   ├── auth.ts                      # signJWT / verifyJWT / getCurrentUser
+│   └── prisma.ts                    # Singleton PrismaClient (dev HMR safe)
 ├── prisma/
-│   ├── schema.prisma
-│   └── seed.ts
-├── proxy.ts                       # JWT verification + role-based route guard
-├── prisma.config.ts              # Prisma 7 datasource config
-└── docker-compose.yml
+│   ├── schema.prisma                # Data models
+│   └── seed.ts                      # Initial employees + sample reviews
+├── proxy.ts                         # Next.js middleware — JWT + role guard
+├── prisma.config.ts                 # Prisma 7 datasource + seed config
+├── docker-compose.yml
+├── Dockerfile
+└── docker-entrypoint.sh
 ```
+
+## Data Model
+
+```
+Employee
+  id          cuid (PK)
+  email       String (unique)
+  name        String
+  password    String (bcrypt hash)
+  role        Role (admin | employee)
+  createdAt   DateTime
+
+Review
+  id          cuid (PK)
+  employeeId  FK → Employee (the subject being reviewed)
+  period      String (e.g. "Q1 2026")
+  status      ReviewStatus (open | closed)
+  createdAt   DateTime
+
+ReviewAssignment
+  id          cuid (PK)
+  reviewId    FK → Review
+  reviewerId  FK → Employee (the person giving feedback)
+  @@unique([reviewId, reviewerId])   -- one slot per reviewer per review
+
+Feedback
+  id           cuid (PK)
+  assignmentId FK → ReviewAssignment (unique — one feedback per assignment)
+  rating       Int (1–5)
+  comments     String
+  submittedAt  DateTime
+```
+
+**Cascade rules (all via Prisma `onDelete: Cascade`):**
+- Delete `Employee` → deletes their `Review`s, `ReviewAssignment`s, and `Feedback`
+- Delete `Review` → deletes its `ReviewAssignment`s and `Feedback`
+- Delete `ReviewAssignment` → deletes its `Feedback`
+
+## Authentication Flow
+
+```
+Browser                          Next.js (proxy.ts)         API Route
+  │                                     │                       │
+  │── POST /api/auth/login ────────────►│                       │
+  │   { email, password }               │ (auth/* bypassed)     │
+  │                                     │──────────────────────►│
+  │                                     │                       │ findUnique by email
+  │                                     │                       │ bcrypt.compare
+  │                                     │                       │ signJWT → HS256
+  │◄── 200 { role } + Set-Cookie ───────│◄──────────────────────│
+  │    token=<jwt>; HttpOnly; SameSite=Lax; MaxAge=7d           │
+  │                                     │                       │
+  │── GET /admin ───────────────────────►│                       │
+  │                                     │ verifyJWT(cookie)     │
+  │                                     │ payload.role === admin?│
+  │◄── 200 (page renders) ──────────────│                       │
+```
+
+**JWT payload:** `{ "userId": "<cuid>", "role": "admin|employee", "iat": ..., "exp": ... }`
+
+**Token lifetime:** 7 days. No refresh. Logout clears the cookie but the token remains cryptographically valid until expiry (no server-side revocation).
+
+## API Routes
+
+### Auth
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/api/auth/login` | Public | Validate credentials, issue JWT cookie |
+| POST | `/api/auth/logout` | Public | Expire JWT cookie |
+| GET | `/api/auth/me` | Any | Return `{ userId, role, name }` from DB |
+
+### Employees
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/employees` | Admin | List all employees |
+| POST | `/api/employees` | Admin | Create employee (hashed password) |
+| PUT | `/api/employees/[id]` | Admin | Update name, email, role, password |
+| DELETE | `/api/employees/[id]` | Admin | Delete employee + cascade |
+
+**Admin-on-admin protection:** An admin cannot edit another admin's account. No admin account can be deleted.
+
+### Reviews
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| GET | `/api/reviews` | Admin | List all reviews with assignments + feedback |
+| GET | `/api/reviews?id=<id>` | Admin | Single review detail |
+| GET | `/api/reviews?reviewerId=<id>` | Employee (self only) | Pending open assignments |
+| POST | `/api/reviews` | Admin | Create review + assignments in a transaction |
+| PUT | `/api/reviews/[id]` | Admin | Update period, status, reviewers in a transaction |
+
+### Feedback
+
+| Method | Path | Auth | Description |
+|---|---|---|---|
+| POST | `/api/feedback` | Employee | Submit rating (1–5) + comments for an assignment |
+
+## Assumptions
+
+1. **No self-registration** — accounts are created only by admins
+2. **No password reset** — out of scope; admins can update any employee's password
+3. **No self-review** — enforced server-side and in UI (subject excluded from reviewer picker)
+4. **One feedback per assignment** — enforced by `@@unique([assignmentId])` DB constraint
+5. **Feedback is immutable** — once submitted it cannot be edited or retracted
+6. **No pagination** — designed for small teams; all lists are fetched in full
+7. **Admin role is immutable** — cannot be downgraded; promoted employees become permanent admins
+8. **Admin is an employee** — stored in the same table with `role = 'admin'`; admins can be assigned as reviewers
+9. **Closed reviews are excluded from employee queue** — employees only see open reviews with pending assignments
+10. **No email notifications** — all communication is in-app only
+11. **JWT secret from environment** — use a secrets manager (Vault, AWS Secrets Manager) in production
+12. **Single-tenant** — one company, one shared database, no org-level isolation
+
+## Security Fixes (Known Issues)
+
+### Critical
+
+**JWT_SECRET not validated at startup** — If `JWT_SECRET` is undefined, `jose` encodes the literal string `"undefined"` as the signing key — a predictable, trivially brutable secret.
+Fix: validate `process.env.JWT_SECRET` is present and has sufficient entropy at startup.
+
+**No rate limiting on `/api/auth/login`** — The login endpoint accepts unlimited requests with no delay, lockout, or CAPTCHA.
+Fix: add rate limiting middleware (e.g. Upstash Ratelimit) keyed by IP and email.
+
+### Medium
+
+**JWT not invalidated on logout** — The JWT remains valid for its full 7-day lifetime after logout.
+Fix: maintain a server-side token denylist or switch to short-lived access tokens with a rotating refresh token.
+
+**No HTTP security headers** — Missing `Content-Security-Policy`, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy`, and `Strict-Transport-Security`.
+Fix: add a `headers()` export in `next.config.ts`.
+
+**Cookie not `Secure` outside `NODE_ENV=production`** — Staging environments not explicitly set to `production` transmit the token cookie over plain HTTP.
+Fix: set `Secure: true` unconditionally or via a separate `COOKIE_SECURE` env var.
+
+### Low
+
+**No audit logging** — Admin mutations and auth events produce no log entries.
+Fix: add structured logging (e.g. Pino) on all auth events and admin mutations.
+
+**No CSRF token** — `sameSite: 'lax'` covers most CSRF vectors but leaves a gap for same-site subdomain attacks.
+Fix: add a double-submit cookie pattern or use `sameSite: 'strict'`.
